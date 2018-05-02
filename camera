@@ -1,0 +1,47 @@
+import time
+import picamera
+import numpy as np
+import cv2
+import sys
+
+with picamera.PiCamera() as camera:
+    camera.resolution = (200, 200)
+    camera.start_preview()
+    # Camera warm-up time
+    time.sleep(1)
+    camera.capture('pic_1.png')
+
+    # load the image
+image = cv2.imread('pic_1.png')
+f = open('output.txt', 'w')
+# define the list of boundaries
+boundaries = [
+#red
+        ([17, 15, 100], [50, 56, 200]),
+#blue
+        ([30,60,0], [100,200,75]),
+#orange
+        ([20, 90, 125], [60, 120, 170]),
+
+#green
+        ([30,130, 90], [90, 220, 140]),
+
+ ]
+count = [0,0,0,0]
+colors = ['red', 'blue', 'orange', 'green']
+index = 0;
+# loop over the boundaries
+for (lower, upper) in boundaries:
+        # create NumPy arrays from the boundaries
+        lower = np.array(lower, dtype = "uint8")
+        upper = np.array(upper, dtype = "uint8")
+
+# find the colors within the specified boundaries and apply
+        # the mask
+        mask = cv2.inRange(image, lower, upper)
+    count[index] = np.sum(mask)
+        f.write("%s: %f\n" % (colors[index],  count[index]))
+        sys.stdout.write("%s: %f\n" % (colors[index], count[index]))
+        index = index + 1
+sys.stdout.write("\n%s is the dominant\n" % colors[np.argmax(count)])
+f.close()

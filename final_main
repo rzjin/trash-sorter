@@ -1,0 +1,113 @@
+import time
+import picamera
+import numpy as np
+import cv2
+import sys
+import RPi.GPIO as IO
+
+# define the list of boundaries
+boundaries = [
+#blue
+        ([30,60,0], [100,200,75]),
+#red
+        ([17, 15, 100], [50, 56, 200]),
+#orange
+        ([20, 90, 125], [60, 120, 170]),
+
+#green
+        ([30,130, 90], [90, 220, 140]),
+ ]
+count = [0,0,0,0]
+colors = ['blue', 'red', 'orange', 'green','brown']
+
+#SERVO INITIALIZATION
+IO.setwarnings(False)          # do not show any warnings
+IO.setmode(IO.BCM)
+
+IO.setup(19,IO.IN, pull_up_down=IO.PUD_UP)
+
+IO.setup(18,IO.OUT)
+p = IO.PWM(18,50)  
+
+IO.setup(12, IO.OUT)
+p2 = IO.PWM(12,50)
+
+IO.setup(16, IO.OUT)
+p3 = IO.PWM(16, 50)
+
+IO.setup(21, IO.OUT)
+p4 = IO.PWM(21, 50)
+
+p.start(12.5)
+p2.start(12.5)
+p3.start(12.5)
+p4.start(12.5)
+
+while True:
+    button_stat = IO.input(19)
+
+    if button_stat == False:
+        sys.stdout.write("pressed-button\n")
+
+        with picamera.PiCamera() as camera:
+            camera.resolution = (200, 200)
+            camera.start_preview()
+            # Camera warm-up time
+            time.sleep(1)
+            camera.capture('pic_1.png')
+
+        # load the image
+        image = cv2.imread('pic_1.png')
+        index = 0;
+
+        # loop over the boundaries
+        for (lower, upper) in boundaries:
+            # create NumPy arrays from the boundaries
+            lower = np.array(lower, dtype = "uint8")
+            upper = np.array(upper, dtype = "uint8")
+
+            # find the colors within the specified boundaries and apply
+            # the mask
+            mask = cv2.inRange(image, lower, upper)
+            count[index] = np.sum(mask)
+            sys.stdout.write("%s: %f\n" % (colors[index], count[index]))
+            index = index + 1
+
+        choose = np.argmax(count)
+        sys.stdout.write("\n%s is the dominant\n" % colors[choose])
+
+        #FRUIT
+        if choose == 1 or choose == 2:
+            p2.ChangeDutyCycle(8.5)
+            time.sleep(3)
+            p2.ChangeDutyCycle(12.5)
+            time.sleep(1)
+        #BLUED AND GREEN
+        if choose == 0 or choose == 3:
+            p3.ChangeDutyCycle(8.5)
+            time.sleep(3)
+            p3.ChangeDutyCycle(12.5)
+            time.sleep(1)
+
+
+        # if choose == 0:
+        #     p.ChangeDutyCycle(8.5)
+        #     time.sleep(1)
+        #     p.ChangeDutyCycle(12.5) 
+        #     time.sleep(1)
+        # if choose == 1:
+        #     p2.ChangeDutyCycle(8.5)
+        #     time.sleep(1)
+        #     p2.ChangeDutyCycle(12.5)
+        #     time.sleep(1)
+        # if choose == 2:
+        #     p3.ChangeDutyCycle(8.5)
+        #     time.sleep(1)
+        #     p3.ChangeDutyCycle(12.5)
+        #     time.sleep(1)
+        # if choose == 3:
+        #     p4.ChangeDutyCycle(8.5)
+        #     time.sleep(1)
+        #     p4.ChangeDutyCycle(12.5)
+        #     time.sleep(1)
+        
